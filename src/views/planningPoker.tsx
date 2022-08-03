@@ -1,16 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import lodashSortby from 'https://cdn.skypack.dev/lodash.sortby';
+import lodashForeach from 'https://cdn.skypack.dev/lodash.foreach';
 import { PlanningPokerStyles } from './planningPokerStyles';
 
 const EXTENSION_ID = 'aha-develop.planning-poker';
 const FIELD_BASE = 'estimate';
 const ESTIMATES = {
-  '0': { color: '#666666', backgroundColor: '#f1f1f1' },
-  '1': { color: '#326601', backgroundColor: '#c7dbaf' },
-  '2': { color: '#301c42', backgroundColor: '#e5dced' },
-  '3': { color: '#7d630b', backgroundColor: '#faebb9' },
-  '5': { color: '#c76d00', backgroundColor: '#fcddb8' },
-  '8': { color: '#992e0b', backgroundColor: '#fac0af' },
+  '0.25': { color: '#666666', backgroundColor: '#f1f1f1' },
+  '0.5': { color: '#326601', backgroundColor: '#c7dbaf' },
+  '0.75': { color: '#326601', backgroundColor: '#c7dbaf' },
+  '1': { color: '#301c42', backgroundColor: '#e5dced' },
+  '2': { color: '#7d630b', backgroundColor: '#faebb9' },
+  '3': { color: '#c76d00', backgroundColor: '#fcddb8' },
+  '4': { color: '#992e0b', backgroundColor: '#fac0af' },
+  '5': { color: '#992e0b', backgroundColor: '#fac0af' },
 };
 const ESTIMATE_VALUES = Object.keys(ESTIMATES);
 
@@ -62,7 +65,7 @@ const PokerCard = ({ width = 29, height = 40, value, onClick }) => (
 
 const VoteForm = ({ onVote }) => (
   <div className="planning-poker--form">
-    {ESTIMATE_VALUES.map((estimate) => {
+    {ESTIMATE_VALUES.sort((a, b) => parseFloat(a) - parseFloat(b)).map((estimate) => {
       return (
         <PokerCard
           key={estimate}
@@ -75,6 +78,7 @@ const VoteForm = ({ onVote }) => (
 );
 
 const VoteList = ({ votes }) => (
+  
   <div className="planning-poker--results">
     {lodashSortby(votes, ['estimate', 'name', 'userId']).map((vote) => {
       return (
@@ -124,7 +128,7 @@ const PlanningPoker = ({ record, initialVotes }) => {
   const [votes, setVotes] = useState<VoteData[]>(initialVotes);
   const [hasVoted, setHasVoted] = useState<Boolean>(
     votes.some((v) => v.id === aha.user.id)
-  );
+    );
 
   // Update state if the intial vote count changes - i.e. another user updates
   // their vote and our parent's props change.
@@ -151,6 +155,15 @@ const PlanningPoker = ({ record, initialVotes }) => {
     await record.clearExtensionField(EXTENSION_ID, extensionFieldKey);
   };
 
+  const clearVotes = () => {
+    setHasVoted(false);
+    lodashForeach(votes, async (vote) => {
+      await record.clearExtensionField(EXTENSION_ID, `${FIELD_BASE}:${vote.id}`);
+    });
+    setVotes([]);
+  };
+
+
   return (
     <>
       <PlanningPokerStyles />
@@ -168,6 +181,13 @@ const PlanningPoker = ({ record, initialVotes }) => {
                 onClick={() => clearVote()}
               >
                 Change vote
+              </button>
+              <button
+                key="change-vote"
+                className="btn btn-small btn-secondary"
+                onClick={() => clearVotes()}
+              >
+                Clear votes
               </button>
             </div>
           </>
